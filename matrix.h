@@ -1,8 +1,9 @@
 #ifndef H_MATRIX
 #define H_MATRIX
 
-#include <iostream>
 #include <iomanip>
+#include <algorithm>
+#include <utility>
 #include <vector>
 
 struct Dimention {
@@ -45,12 +46,18 @@ private:
 };
 
 template <typename T>
-Row<T> operator * (Row<T>& row, T multiplier) {
+Row<T> operator * (const Row<T>& row, T multiplier) {
 	int columns_number = row.getSize();
+	Row<T> resultingRow(row.getSize());
 	for (size_t column_number = 0; column_number < columns_number; ++column_number) {
-		row[column_number] *= multiplier;
+		resultingRow = row[column_number] * multiplier;
 	}
 	return row;
+}
+
+template <typename T>
+Row<T> operator * (T multiplier, const Row<T>& row) {
+	return row * multiplier;
 }
 
 template <typename T>
@@ -65,11 +72,6 @@ Row<T> operator + (const Row<T>& left, const Row<T>& right) {
 		resulting_row[column_number] = left[column_number] + right[column_number];
 	}
 	return resulting_row;
-}
-
-template <typename T>
-Row<T> operator * (T multiplier, Row<T>& row) {
-	return row * multiplier;
 }
 
 template <typename T>
@@ -102,18 +104,56 @@ public:
 	Matrix(size_t n, size_t m) {
 		matrix = Column<Row<T>>(n, Row<T>(m, 0));
 	}
+	Matrix(const Dimention& dimention) 
+		: Matrix(dimention.rows_number, dimention.columns_number) {}
 	Dimention getDimention() const {
 		return Dimention(matrix.getSize(), matrix[0].getSize());
 	}
+	void swapRows(size_t left, size_t right) {
+		checkRowBounds(left);
+		checkRowBounds(right);
+		std::swap(matrix[left], matrix[right]);
+	}
+	void swapColumns(size_t left, size_t right) {
+		checkColumnBounds(left);
+		checkColumnBounds(right);
+		Dimention dimention = getDimention();
+		for (size_t row = 0; row < dimention.rows_number; ++row) {
+			std::swap(matrix[row][left], matrix[row][right]);
+		}
+	}
 	Row<T>& operator [] (size_t row_number) {
+		checkRowBounds(row_number);
 		return matrix[row_number];
 	}
 	Row<T> operator [] (size_t row_number) const {
+		checkRowBounds(row_number);
 		return matrix[row_number];
 	}
 private:
+	void checkRowBounds(size_t row) const {
+		Dimention dimention = getDimention();
+		if (dimention.rows_number <= row) {
+			throw std::invalid_argument("Row number of first element is out of bounds");
+		}
+	}
+	void checkColumnBounds(size_t column) const {
+		Dimention dimention = getDimention();
+		if (dimention.columns_number <= column) {
+			throw std::invalid_argument("Column number of first element is out of bounds");
+		}
+	}
 	Column<Row<T>> matrix;
 };
+
+template <typename T>
+Matrix<T> getIdentityMatrix(size_t n) {
+	Matrix<T> identityMatrix(n, n);
+	for (size_t index = 0; index < n; ++index) {
+		identityMatrix[index][index] = 1;
+	}
+	return identityMatrix;
+}
 
 template <typename T>
 std::ostream& operator << (std::ostream& os, Matrix<T> matrix) {
@@ -129,18 +169,40 @@ std::ostream& operator << (std::ostream& os, Matrix<T> matrix) {
 }
 
 template <typename T>
+Matrix<T> operator * (const Matrix<T>& matrix, T multiplier) {
+	Dimention dimention = matrix.getDimention();
+	Matrix<T> resultingMatrix(dimention);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		for (size_t column = 0; column < dimention.columns_number; ++column) {
+			resultingMatrix[row][column] = matrix[row][column] * multiplier;
+		}
+	}
+	return resultingMatrix;
+}
+
+template <typename T>
+Matrix<T> operator * (T multiplier, const Matrix<T>& matrix) {
+	return matrix * multiplier;
+}
+
+template <typename T>
 Matrix<T> operator + (const Matrix<T>& left, const Matrix<T>& right) {
 	if (left.getDimention() != right.getDimention()) {
 		throw std::invalid_argument("sum of matrixes with different dimentions");
 	}
 	Dimention dimention = left.getDimention();
-	Matrix<T> resulting_matrix(dimention.rows_number, dimention.columns_number);
+	Matrix<T> resulting_matrix(dimention);
 	for (size_t row = 0; row < dimention.rows_number; ++row) {
 		for (size_t column = 0; column < dimention.columns_number; ++column) {
 			resulting_matrix[row][column] = left[row][column] + right[row][column];
 		}
 	}
 	return resulting_matrix;
+}
+
+template <typename T>
+Matrix<T> operator - (const Matrix<T>& left, const Matrix<T>& right) {
+	return left + (right * static_cast<T>(-1));
 }
 
 template <typename T>
