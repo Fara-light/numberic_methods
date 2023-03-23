@@ -101,7 +101,7 @@ std::pair<Matrix<T>, Matrix<T>> decompositionLU(const Matrix<T>& matrix) {
 }
 
 template <typename T>
-Matrix<T> executeForwardSubstitution(const Matrix<T> L, const Matrix<T> b) {
+Matrix<T> executeForwardSubstitution(const Matrix<T>& L, const Matrix<T>& b) {
 	// auxiliary function, executes forward substitution
 	// left side: L, right side: b
 	Dimention dimention = L.getDimention();
@@ -118,7 +118,7 @@ Matrix<T> executeForwardSubstitution(const Matrix<T> L, const Matrix<T> b) {
 }
 
 template <typename T>
-Matrix<T> executeBackSubstitution(const Matrix<T> U, const Matrix<T> y) {
+Matrix<T> executeBackSubstitution(const Matrix<T>& U, const Matrix<T>& y) {
 	// auxiliary function, executes back substitution
 	// left side: U, right side: y
 	Dimention dimention = U.getDimention();
@@ -136,22 +136,81 @@ Matrix<T> executeBackSubstitution(const Matrix<T> U, const Matrix<T> y) {
 }
 
 template <typename T>
-Matrix<T> solveSystemOfLineralEquationsLU(const Matrix<T> A, const Matrix<T> b) {
-	Dimention aDimention = A.getDimention();
+Matrix<T> solveSystemOfLineralEquationsLU(const std::pair<Matrix<T>, Matrix<T>>& pairLU, const Matrix<T>& b) {
+	// solves system of lineral equations Ax = b, there A = LU
+	// returns vector x
 	Dimention bDimention = b.getDimention();
-	if (aDimention.rows_number != aDimention.columns_number) {
-		throw std::invalid_argument("can't execute decomposition of non-square matrix");
-	}
-	if (calculateDeterminant(A) == 0) {
-		throw std::invalid_argument("can't execute decomposition of degenerate matrix");
-	}
+	Dimention aDimention = pairLU.first.getDimention();
 	if (bDimention.rows_number != aDimention.rows_number && bDimention.columns_number != 1) {
 		throw std::invalid_argument("wrong right side of equation");
 	}
-	size_t n = bDimention.rows_number;
-	auto pairLU = decompositionLU(A);
 	Matrix<T> y = executeForwardSubstitution(pairLU.first, b);
 	Matrix<T> x = executeBackSubstitution(pairLU.second, y);
+	return x;
+}
+
+template <typename T>
+void setMatrixColumn(Matrix<T>& matrix, const Matrix<T>& column, size_t column_index) {
+	// auxiliary function, replaces matrix column with column_index with input column 
+	Dimention dimention = matrix.getDimention();
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		matrix[row][column_index] = column[row][0];
+	}
+}
+
+template <typename T>
+Matrix<T> findInverseMatrix(const Matrix<T>& matrix) {
+	Dimention dimention = matrix.getDimention();
+	if (dimention.rows_number != dimention.columns_number) {
+		throw std::invalid_argument("can't calculate inverse matrix of non-square matrix");
+	}
+	if (calculateDeterminant(matrix) == 0) {
+		throw std::invalid_argument("can't calculate inverse matrix of degenerate matrix");
+	}
+	Matrix<T> inverseMatrix(dimention);
+	std::pair<Matrix<T>, Matrix<T>> pairLU = decompositionLU(matrix);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		Matrix<T> singleOneVector(dimention.rows_number, 1);
+		singleOneVector[row][0] = 1;
+		Matrix<T> anotherColumn = solveSystemOfLineralEquationsLU(pairLU, singleOneVector);
+		setMatrixColumn(inverseMatrix, anotherColumn, row);
+	}
+	return inverseMatrix;
+}
+
+template <typename T>
+std::vector<std::pair<T, T>> calculateRunThroughCoefficients(const Matrix<T>& matrix, const Matrix<T>& B) {
+	Dimention dimention = matrix.getDimention();
+	std::vector<std::pair<T, T>> runThroughCoefficients;
+	runThroughCoefficients.emplace_back(-matrix[0][1]/matrix[0][0], B[0][0]/matrix[0][0]);
+	for (size_t row = 1; row < dimention.rows_number; ++row) {
+		T prevP = runThroughCoefficients.back().first;
+		T prevQ = runThroughCoefficients.back().second;
+		T a = matrix[row][row - 1], b = matrix[row][row], c = (row + 1 == dimention.rows_number) ? 0 : matrix[row][row + 1];
+		T P = -c/(b + a * prevP);
+		T Q = (B[row][0] - a * prevQ)/(b + a * prevP);
+		runThroughCoefficients.emplace_back(P, Q);
+	}
+	return runThroughCoefficients;
+}
+
+template <typename T>
+Matrix<T> solveTridiagonalMatrixSystemOfLineralEquations(const Matrix<T>& matrix, const Matrix<T>& b) {
+	Dimention m_dimention = matrix.getDimention();
+	Dimention b_dimention = b.getDimention();
+	if (m_dimention.rows_number != m_dimention.columns_number) {
+		throw std::invalid_argument("can't solve system of lineral equations with non-square matrix");
+	}
+	if (m_dimention.rows_number != b_dimention.rows_number && b_dimention.columns_number != 1) {
+		throw std::invalid_argument("ivalid b-matrix argument");
+	}
+	size_t n = m_dimention.rows_number;
+	std::vector<std::pair<T, T>> runThroughCoefficients = calculateRunThroughCoefficients(matrix, b);
+	Matrix<T> x(n, 1);
+	x[n - 1][0] = runThroughCoefficients[n - 1].second;
+	for (size_t row = n - 2; row < n; --row) {
+		x[row][0] = runThroughCoefficients[row].first * x[row + 1][0] + runThroughCoefficients[row].second;
+	}
 	return x;
 }
 
