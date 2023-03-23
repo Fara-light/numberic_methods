@@ -63,16 +63,36 @@ T calculateDeterminant(const Matrix<T>& matrix) {
 }
 
 template <typename T>
-Matrix<T> caclculateLUPDecomposition(const Matrix<T>& matrix) {
-	// caculates C matrix, which is a sum of L and U matrices of LU decomposition of matrix
+std::pair<Matrix<T>, Matrix<T>> decompositionLU(const Matrix<T>& matrix) {
 	Dimention dimention = matrix.getDimention();
 	if (dimention.rows_number != dimention.columns_number) {
-		throw std::invalid_argument("can't execute LUP decomposition of non-square matrix");
+		throw std::invalid_argument("can't execute decomposition of non-square matrix");
 	}
-	if (calculateDeterminant(matrix) == 0) {
-		throw std::logic_error("can't execute LUP decomposition of degenerate matrix");
+	Matrix<T> U = matrix;
+	Matrix<T> L(dimention);
+	for (size_t column = 0; column < dimention.columns_number; ++column) {
+		for (size_t row = 0; row < dimention.rows_number; ++row) {
+			L[row][column] = U[row][column] / U[column][column];
+		}
 	}
-
+	for (size_t index = 1; index < dimention.rows_number; ++index) {
+		for (size_t column = index - 1; column < dimention.columns_number; ++column) {
+			for (size_t row = column; row < dimention.rows_number; ++row) {
+				L[row][column] = U[row][column] / U[column][column];
+			}
+		}
+		for (size_t row = index; row < dimention.rows_number; ++row) {
+			for (size_t column = index - 1; column < dimention.columns_number; ++column) {
+				U[row][column] = U[row][column] - L[row][index - 1]*U[index - 1][column];
+			}
+		}
+	}
+	for (size_t column = 1; column < dimention.columns_number; ++column) {
+		for (size_t row = 0; row < column; ++row) {
+			L[row][column] = 0;
+		}
+	}
+	return std::make_pair(L, U);
 }
 
 #endif
