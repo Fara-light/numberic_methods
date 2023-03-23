@@ -64,9 +64,14 @@ T calculateDeterminant(const Matrix<T>& matrix) {
 
 template <typename T>
 std::pair<Matrix<T>, Matrix<T>> decompositionLU(const Matrix<T>& matrix) {
+	// executes LU-decomposition of Matrix<T>
+	// returns pair of matrices L and U
 	Dimention dimention = matrix.getDimention();
 	if (dimention.rows_number != dimention.columns_number) {
 		throw std::invalid_argument("can't execute decomposition of non-square matrix");
+	}
+	if (calculateDeterminant(matrix) == 0) {
+		throw std::invalid_argument("can't execute decomposition of degenerate matrix");
 	}
 	Matrix<T> U = matrix;
 	Matrix<T> L(dimention);
@@ -93,6 +98,61 @@ std::pair<Matrix<T>, Matrix<T>> decompositionLU(const Matrix<T>& matrix) {
 		}
 	}
 	return std::make_pair(L, U);
+}
+
+template <typename T>
+Matrix<T> executeForwardSubstitution(const Matrix<T> L, const Matrix<T> b) {
+	// auxiliary function, executes forward substitution
+	// left side: L, right side: b
+	Dimention dimention = L.getDimention();
+	size_t n = dimention.rows_number;
+	Matrix<T> y(n, 1);
+	for (size_t row = 0; row < n; ++row) {
+		T prevSum = 0;
+		for (size_t column = 0; column < row; ++column) {
+			prevSum += L[row][column] * y[column][0];
+		}
+		y[row][0] = (b[row][0] - prevSum) / L[row][row];
+	}
+	return y;
+}
+
+template <typename T>
+Matrix<T> executeBackSubstitution(const Matrix<T> U, const Matrix<T> y) {
+	// auxiliary function, executes back substitution
+	// left side: U, right side: y
+	Dimention dimention = U.getDimention();
+	size_t n = dimention.rows_number;
+	Matrix<T> x(n, 1);
+	// overflow is my best friend
+	for (size_t row = n - 1; row < n; --row) {
+		T prevSum = 0;
+		for (size_t column = n - 1; column > row; -- column) {
+			prevSum += U[row][column] * x[column][0];
+		}
+		x[row][0] = (y[row][0] - prevSum) / U[row][row];
+	}
+	return x;
+}
+
+template <typename T>
+Matrix<T> solveSystemOfLineralEquationsLU(const Matrix<T> A, const Matrix<T> b) {
+	Dimention aDimention = A.getDimention();
+	Dimention bDimention = b.getDimention();
+	if (aDimention.rows_number != aDimention.columns_number) {
+		throw std::invalid_argument("can't execute decomposition of non-square matrix");
+	}
+	if (calculateDeterminant(A) == 0) {
+		throw std::invalid_argument("can't execute decomposition of degenerate matrix");
+	}
+	if (bDimention.rows_number != aDimention.rows_number && bDimention.columns_number != 1) {
+		throw std::invalid_argument("wrong right side of equation");
+	}
+	size_t n = bDimention.rows_number;
+	auto pairLU = decompositionLU(A);
+	Matrix<T> y = executeForwardSubstitution(pairLU.first, b);
+	Matrix<T> x = executeBackSubstitution(pairLU.second, y);
+	return x;
 }
 
 #endif

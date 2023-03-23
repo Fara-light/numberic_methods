@@ -158,10 +158,9 @@ Matrix<T> getIdentityMatrix(size_t n) {
 template <typename T>
 std::ostream& operator << (std::ostream& os, Matrix<T> matrix) {
 	Dimention matrix_dimention = matrix.getDimention();
-	os << matrix_dimention.rows_number << "-" << matrix_dimention.columns_number << std::endl;
 	for (size_t row_number = 0; row_number < matrix_dimention.rows_number; ++row_number) {
 		for (size_t column_number = 0; column_number < matrix_dimention.columns_number; ++column_number) {
-			os << std::setw(4) << matrix[row_number][column_number] << " ";
+			os << std::setw(7) << matrix[row_number][column_number] << " ";
 		}
 		os << std::endl;
 	}
