@@ -1,6 +1,7 @@
 #ifndef MATRIX_OPERATIONS
 #define MATRIX_OPERATIONS
 
+#include <cmath>
 #include </home/fara/numeric_methods/matrix.h>
 
 template <typename T>
@@ -70,19 +71,14 @@ std::pair<Matrix<T>, Matrix<T>> decompositionLU(const Matrix<T>& matrix) {
 	if (dimention.rows_number != dimention.columns_number) {
 		throw std::invalid_argument("can't execute decomposition of non-square matrix");
 	}
-	if (calculateDeterminant(matrix) == 0) {
-		throw std::invalid_argument("can't execute decomposition of degenerate matrix");
-	}
 	Matrix<T> U = matrix;
 	Matrix<T> L(dimention);
-	for (size_t column = 0; column < dimention.columns_number; ++column) {
-		for (size_t row = 0; row < dimention.rows_number; ++row) {
-			L[row][column] = U[row][column] / U[column][column];
-		}
-	}
 	for (size_t index = 1; index < dimention.rows_number; ++index) {
 		for (size_t column = index - 1; column < dimention.columns_number; ++column) {
 			for (size_t row = column; row < dimention.rows_number; ++row) {
+				if (U[column][column] == 0) {
+					throw std::invalid_argument("can't divide by zero");
+				}
 				L[row][column] = U[row][column] / U[column][column];
 			}
 		}
@@ -90,11 +86,6 @@ std::pair<Matrix<T>, Matrix<T>> decompositionLU(const Matrix<T>& matrix) {
 			for (size_t column = index - 1; column < dimention.columns_number; ++column) {
 				U[row][column] = U[row][column] - L[row][index - 1]*U[index - 1][column];
 			}
-		}
-	}
-	for (size_t column = 1; column < dimention.columns_number; ++column) {
-		for (size_t row = 0; row < column; ++row) {
-			L[row][column] = 0;
 		}
 	}
 	return std::make_pair(L, U);
@@ -127,7 +118,7 @@ Matrix<T> executeBackSubstitution(const Matrix<T>& U, const Matrix<T>& y) {
 	// overflow is my best friend
 	for (size_t row = n - 1; row < n; --row) {
 		T prevSum = 0;
-		for (size_t column = n - 1; column > row; -- column) {
+		for (size_t column = n - 1; column > row; --column) {
 			prevSum += U[row][column] * x[column][0];
 		}
 		x[row][0] = (y[row][0] - prevSum) / U[row][row];
@@ -150,6 +141,18 @@ Matrix<T> solveSystemOfLineralEquationsLU(const std::pair<Matrix<T>, Matrix<T>>&
 }
 
 template <typename T>
+T calculateDeterminantLU(const std::pair<Matrix<T>, Matrix<T>>& pairLU) {
+	// calculates determinants of A = L * U
+	Matrix<T> U = pairLU.second;
+	Dimention dimention = U.getDimention();
+	T determinant = 1;
+	for (size_t index = 0; index < dimention.rows_number; ++index) {
+		determinant *= U[index][index];
+	}
+	return determinant;
+}
+
+template <typename T>
 void setMatrixColumn(Matrix<T>& matrix, const Matrix<T>& column, size_t column_index) {
 	// auxiliary function, replaces matrix column with column_index with input column 
 	Dimention dimention = matrix.getDimention();
@@ -160,6 +163,7 @@ void setMatrixColumn(Matrix<T>& matrix, const Matrix<T>& column, size_t column_i
 
 template <typename T>
 Matrix<T> findInverseMatrix(const Matrix<T>& matrix) {
+	// calculates inverse matrix using LU decomposition
 	Dimention dimention = matrix.getDimention();
 	if (dimention.rows_number != dimention.columns_number) {
 		throw std::invalid_argument("can't calculate inverse matrix of non-square matrix");
@@ -196,6 +200,7 @@ std::vector<std::pair<T, T>> calculateRunThroughCoefficients(const Matrix<T>& ma
 
 template <typename T>
 Matrix<T> solveTridiagonalMatrixSystemOfLineralEquations(const Matrix<T>& matrix, const Matrix<T>& b) {
+	// solves system of lineral equations defined by tridiagonal matrix
 	Dimention m_dimention = matrix.getDimention();
 	Dimention b_dimention = b.getDimention();
 	if (m_dimention.rows_number != m_dimention.columns_number) {
@@ -212,6 +217,133 @@ Matrix<T> solveTridiagonalMatrixSystemOfLineralEquations(const Matrix<T>& matrix
 		x[row][0] = runThroughCoefficients[row].first * x[row + 1][0] + runThroughCoefficients[row].second;
 	}
 	return x;
+}
+
+template <typename T>
+std::pair<Matrix<T>, Matrix<T>> calculateSimpleIterationsCoefficients(const Matrix<T>& matrix, const Matrix<T>& b) {
+	// auxiliary function, calculates matrices alpha and beta for simple iterations method
+	Dimention dimention = matrix.getDimention();
+	Matrix<T> alpha(dimention);
+	for(size_t row = 0; row < dimention.rows_number; ++row) {
+		for (size_t column = 0; column < dimention.columns_number; ++column) {
+			if (row == column) {
+				alpha[row][column] = 0;
+				continue;
+			}
+			alpha[row][column] = -matrix[row][column] / matrix[row][row];
+		}
+	}
+	Matrix<T> beta(dimention.rows_number, 1);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		beta[row][0] = b[row][0] / matrix[row][row];
+	}
+	return std::make_pair(alpha, beta);
+}
+
+template <typename T>
+T calculateVectorNorm(const Matrix<T>& v) {
+	// calculates norm of vector
+	Dimention dimention = v.getDimention();
+	if (dimention.columns_number != 1) {
+		throw std::invalid_argument("can't calculate norm of matrix");
+	}
+	T norm = 0;
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		norm += v[row][0] * v[row][0];
+	}
+	return norm;
+}
+
+template <typename T>
+T calculateMatrixNorm(const Matrix<T>& m) {
+	// calculates norm of matrix
+	Dimention dimention = m.getDimention();
+	T resultingNorm = -1;
+	for (size_t column = 0; column <= dimention.columns_number; ++column) {
+		T columnSum = 0;
+		for (size_t row = 0; row < dimention.rows_number; ++row) {
+			columnSum += m[row][column];
+		}
+		resultingNorm = std::max(resultingNorm, columnSum);
+	}
+	return resultingNorm;
+}
+
+template <typename T>
+std::pair<size_t, Matrix<T>> solveSystemOfLineralEquationsSimpleIterations(const Matrix<T>& matrix, const Matrix<T>& b, T EPS) {
+	// solves system of lineral equations numerically, using method of simple iterations
+	Dimention dimention = matrix.getDimention();
+	if (dimention.rows_number != dimention.columns_number) {
+		throw std::invalid_argument("can't solve system of lineral equations with non-square matrix");	
+	}
+	std::pair<Matrix<T>, Matrix<T>> alphaBetaPair = calculateSimpleIterationsCoefficients(matrix, b);
+	Matrix<T> alpha = alphaBetaPair.first;
+	Matrix<T> beta = alphaBetaPair.second;
+	Matrix<T> previousX(dimention.rows_number, 1);
+	Matrix<T> currentX = beta;
+	size_t iterationsCnt = 0;
+	while (fabs(calculateVectorNorm(previousX - currentX)) > EPS) {
+		++iterationsCnt;
+		std::swap(previousX, currentX);
+		currentX = beta + alpha * previousX;
+	}
+	return std::make_pair(iterationsCnt, currentX);
+}
+
+template <typename T>
+struct SeidelCoefficients {
+	Matrix<T> matrix;
+	Matrix<T> vector;
+};
+
+template <typename T>
+Matrix<T> findInverseOfLowerTriangularMatrix(const Matrix<T>& LT) {
+	Dimention dimention = LT.getDimention();
+	Matrix<T> inverseMatrix(dimention);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		Matrix<T> singleOneVector(dimention.rows_number, 1);
+		singleOneVector[row][0] = 1;
+		Matrix<T> anotherColumn = executeForwardSubstitution(LT, singleOneVector);
+		setMatrixColumn(inverseMatrix, anotherColumn, row);
+	}
+	return inverseMatrix;
+}
+
+template <typename T>
+SeidelCoefficients<T> calculateSeidelMethodCoefficients(const std::pair<Matrix<T>, Matrix<T>> alphaBetaPair) {
+	Matrix<T> alpha = alphaBetaPair.first;
+	Matrix<T> beta = alphaBetaPair.second;
+	Dimention dimention = alpha.getDimention();
+	Matrix<T> C(dimention);
+	for (size_t column = 0; column < dimention.columns_number; ++column) {
+		for (size_t row = 0; row <= column; ++row) {
+			C[row][column] = alpha[row][column];
+		}
+	}
+	Matrix<T> B(dimention);
+	for (size_t column = 0; column < dimention.columns_number; ++column) {
+		for (size_t row = column + 1; row < dimention.rows_number; ++row) {
+			B[row][column] = alpha[row][column];
+		}
+	}
+	Matrix<T> commonPart = findInverseOfLowerTriangularMatrix(getIdentityMatrix<T>(dimention.rows_number) - B);
+	return {commonPart * C, commonPart * beta};
+}
+
+template <typename T>
+std::pair<size_t, Matrix<T>> solveSystemOfLineralEquationsSeidelMethod(const Matrix<T>& matrix, const Matrix<T>& b, T EPS) {
+	Dimention dimention = matrix.getDimention();
+	std::pair<Matrix<T>, Matrix<T>> alphaBetaPair = calculateSimpleIterationsCoefficients(matrix, b);
+	SeidelCoefficients<T> seidelCoefficients = calculateSeidelMethodCoefficients(alphaBetaPair);
+	Matrix<T> previousX(dimention.rows_number, 1);
+	Matrix<T> currentX = alphaBetaPair.second;
+	size_t iterationsCnt = 0;
+	while (fabs(calculateVectorNorm(previousX - currentX)) >= EPS) {
+		std::swap(currentX, previousX);
+		currentX = seidelCoefficients.matrix * previousX + seidelCoefficients.vector;
+		++iterationsCnt;
+	}
+	return std::make_pair(iterationsCnt, previousX);
 }
 
 #endif
