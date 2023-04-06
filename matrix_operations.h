@@ -188,11 +188,11 @@ template <typename T>
 std::vector<std::pair<T, T>> calculateRunThroughCoefficients(const Matrix<T>& matrix, const Matrix<T>& B) {
 	Dimention dimention = matrix.getDimention();
 	std::vector<std::pair<T, T>> runThroughCoefficients;
-	runThroughCoefficients.emplace_back(-matrix[0][1]/matrix[0][0], B[0][0]/matrix[0][0]);
+	runThroughCoefficients.emplace_back(-matrix[0][2]/matrix[0][1], B[0][0]/matrix[0][1]);
 	for (size_t row = 1; row < dimention.rows_number; ++row) {
 		T prevP = runThroughCoefficients.back().first;
 		T prevQ = runThroughCoefficients.back().second;
-		T a = matrix[row][row - 1], b = matrix[row][row], c = (row + 1 == dimention.rows_number) ? 0 : matrix[row][row + 1];
+		T a = matrix[row][0], b = matrix[row][1], c = matrix[row][2];
 		T P = -c/(b + a * prevP);
 		T Q = (B[row][0] - a * prevQ)/(b + a * prevP);
 		runThroughCoefficients.emplace_back(P, Q);
@@ -205,9 +205,6 @@ Matrix<T> solveTridiagonalMatrixSystemOfLineralEquations(const Matrix<T>& matrix
 	// solves system of lineral equations defined by tridiagonal matrix
 	Dimention m_dimention = matrix.getDimention();
 	Dimention b_dimention = b.getDimention();
-	if (m_dimention.rows_number != m_dimention.columns_number) {
-		throw std::invalid_argument("can't solve system of lineral equations with non-square matrix");
-	}
 	if (m_dimention.rows_number != b_dimention.rows_number && b_dimention.columns_number != 1) {
 		throw std::invalid_argument("ivalid b-matrix argument");
 	}
