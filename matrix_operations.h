@@ -2,6 +2,8 @@
 #define MATRIX_OPERATIONS
 
 #include <cmath>
+#include <tuple>
+#include <iostream>
 #include </home/fara/numeric_methods/matrix.h>
 
 template <typename T>
@@ -298,6 +300,7 @@ struct SeidelCoefficients {
 
 template <typename T>
 Matrix<T> findInverseOfLowerTriangularMatrix(const Matrix<T>& LT) {
+	// finds inverse matrix for lower triangular matrix
 	Dimention dimention = LT.getDimention();
 	Matrix<T> inverseMatrix(dimention);
 	for (size_t row = 0; row < dimention.rows_number; ++row) {
@@ -311,6 +314,7 @@ Matrix<T> findInverseOfLowerTriangularMatrix(const Matrix<T>& LT) {
 
 template <typename T>
 SeidelCoefficients<T> calculateSeidelMethodCoefficients(const std::pair<Matrix<T>, Matrix<T>> alphaBetaPair) {
+	// auxiliary function, calculates coefficients for Seidel method
 	Matrix<T> alpha = alphaBetaPair.first;
 	Matrix<T> beta = alphaBetaPair.second;
 	Dimention dimention = alpha.getDimention();
@@ -332,6 +336,8 @@ SeidelCoefficients<T> calculateSeidelMethodCoefficients(const std::pair<Matrix<T
 
 template <typename T>
 std::pair<size_t, Matrix<T>> solveSystemOfLineralEquationsSeidelMethod(const Matrix<T>& matrix, const Matrix<T>& b, T EPS) {
+	// solves system of lineral equations with Seidel Method
+	// returns std::pair<size_t, Matrix<T>> - number of iterations, answer
 	Dimention dimention = matrix.getDimention();
 	std::pair<Matrix<T>, Matrix<T>> alphaBetaPair = calculateSimpleIterationsCoefficients(matrix, b);
 	SeidelCoefficients<T> seidelCoefficients = calculateSeidelMethodCoefficients(alphaBetaPair);
@@ -344,6 +350,114 @@ std::pair<size_t, Matrix<T>> solveSystemOfLineralEquationsSeidelMethod(const Mat
 		++iterationsCnt;
 	}
 	return std::make_pair(iterationsCnt, previousX);
+}
+
+template <typename T>
+std::pair<size_t, size_t> findLargestAbsOffDiagonalValuePos(const Matrix<T>& matrix) {
+	// returns pair of row and column of the largest off diagonal element of matrix by absolute value
+	Dimention dimention = matrix.getDimention();
+	if (dimention.rows_number != dimention.columns_number) {
+		throw std::invalid_argument("can't handle non-square matrix");
+	}
+	if (dimention.rows_number == 1) {
+		throw std::logic_error("can't find max off-diagonal value when no off-diagonal values");
+	}
+	T maxValue = fabs(matrix[0][1]);
+	size_t maxRow = 0;
+	size_t maxColumn = 1;
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		for (size_t column = 0; column < dimention.columns_number; ++column) {
+			if (row == column) {
+				continue;
+			}
+			if (std::fabs(matrix[row][column]) > maxValue) {
+				maxValue = std::fabs(matrix[row][column]);
+				maxRow = row;
+				maxColumn = column;
+			}
+		}
+	}
+	return std::make_pair(maxRow, maxColumn);
+}
+
+template <typename T>
+T sumSquareOffDiagonalElements(const Matrix<T>& matrix) {
+	// calculates sum of off-diagonal elements of matrix
+	Dimention dimention = matrix.getDimention();
+	T sum = 0;
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		for (size_t column = 0; column < dimention.columns_number; ++column) {
+			if (row == column) {
+				continue;
+			}
+			sum += matrix[row][column] * matrix[row][column];
+		}
+	}
+	return sum;
+}
+
+template <typename T>
+bool rotationMethodEndCondition(const Matrix<T>& matrix, T EPS) {
+	// returns true when end-condition is satisfied
+	T sum = sumSquareOffDiagonalElements(matrix);
+	return std::sqrt(sum) < EPS;
+}
+
+
+
+template <typename T>
+Matrix<T> findRotationMethodMatrixU(const Matrix<T>& matrix, std::pair<size_t, size_t> maxElementRowColumnPair) {
+	// finds matrix U for rotation method
+	Dimention dimention = matrix.getDimention();
+	Matrix<T> U = getIdentityMatrix<T>(dimention);
+	size_t maxElementRow = maxElementRowColumnPair.first;
+	size_t maxElementColumn = maxElementRowColumnPair.second;
+	T phi = std::atan2(2 * matrix[maxElementRow][maxElementColumn], 
+			matrix[maxElementRow][maxElementRow] - matrix[maxElementColumn][maxElementColumn]) / 2;
+	U[maxElementRow][maxElementRow] = cos(phi);
+	U[maxElementRow][maxElementColumn] = -sin(phi);
+	U[maxElementColumn][maxElementRow] = sin(phi);
+	U[maxElementColumn][maxElementColumn] = cos(phi);
+	return U;
+}
+
+template <typename T>
+Matrix<T> getMatrixColumn(const Matrix<T>& matrix, size_t columnNumber) {
+	// returns matrices column with number columnNumber
+	Dimention dimention = matrix.getDimention();
+	Matrix<T> resultingColumn(dimention.rows_number, 1);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		resultingColumn[row][0] = matrix[row][columnNumber];
+	}
+	return resultingColumn;
+}
+
+template <typename T>
+std::tuple<size_t, Matrix<T>, std::vector<Matrix<T>>> findEigenValuesVectorsRotationMethod(const Matrix<T>& matrix, T EPS) {
+	// returns number of iterations, vector of eigen values, std::vector of eigen vectors
+	Dimention dimention = matrix.getDimention();
+	if (dimention.rows_number != dimention.columns_number) {
+		throw std::invalid_argument("can't find eigen values of non-square matrix");
+	}
+	Matrix<T> ans = matrix;
+	Matrix<T> eigenVectorMatrixU = getIdentityMatrix<T>(dimention);
+	size_t iterationsCount = 0;
+	while (not rotationMethodEndCondition(ans, EPS)) {
+		std::pair<size_t, size_t> maxElementRowColumnPair = findLargestAbsOffDiagonalValuePos(ans);
+		Matrix<T> U = findRotationMethodMatrixU(ans, maxElementRowColumnPair);
+		eigenVectorMatrixU = eigenVectorMatrixU * U;
+		ans = transpose(U) * ans * U;
+		++iterationsCount;
+	}
+	Matrix<T> eigenValuesVector(dimention.rows_number, 1);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		eigenValuesVector[row][0] = ans[row][row];
+	}
+	std::vector<Matrix<T>> eigenVectors;
+	for (size_t column = 0; column < dimention.columns_number; ++column) {
+		eigenVectors.push_back(getMatrixColumn(eigenVectorMatrixU, column));
+	}
+	return std::make_tuple(iterationsCount, eigenValuesVector, eigenVectors);
 }
 
 #endif

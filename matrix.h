@@ -102,6 +102,9 @@ template <typename T>
 class Matrix {	
 public:
 	Matrix(size_t n, size_t m) {
+		if (n < 1 || m < 1) {
+			throw std::logic_error("can't create matrix with no elements");
+		}
 		matrix = Column<Row<T>>(n, Row<T>(m, 0));
 	}
 	Matrix(const Dimention& dimention) 
@@ -147,6 +150,18 @@ private:
 };
 
 template <typename T>
+Matrix<T> transpose(const Matrix<T>& matrix) {
+	Dimention dimention = matrix.getDimention();
+	Matrix<T> transposedMatrix(dimention.columns_number, dimention.rows_number);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		for (size_t column = 0; column < dimention.columns_number; ++column) {
+			transposedMatrix[column][row] = matrix[row][column];
+		}
+	}
+	return transposedMatrix;
+}
+
+template <typename T>
 Matrix<T> getIdentityMatrix(size_t n) {
 	Matrix<T> identityMatrix(n, n);
 	for (size_t index = 0; index < n; ++index) {
@@ -156,11 +171,20 @@ Matrix<T> getIdentityMatrix(size_t n) {
 }
 
 template <typename T>
+Matrix<T> getIdentityMatrix(Dimention dimention) {
+	if (dimention.rows_number != dimention.columns_number) {
+		throw std::invalid_argument("can't create non-square identity matrix");
+	}
+	return getIdentityMatrix<T>(dimention.rows_number);
+}
+
+template <typename T>
 std::ostream& operator << (std::ostream& os, Matrix<T> matrix) {
 	Dimention matrix_dimention = matrix.getDimention();
+	os << std::fixed;
 	for (size_t row_number = 0; row_number < matrix_dimention.rows_number; ++row_number) {
 		for (size_t column_number = 0; column_number < matrix_dimention.columns_number; ++column_number) {
-			os << std::setw(7) << matrix[row_number][column_number] << " ";
+			os << std::setw(13) << matrix[row_number][column_number] << " ";
 		}
 		os << std::endl;
 	}
