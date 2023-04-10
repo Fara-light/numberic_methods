@@ -191,10 +191,10 @@ std::ostream& operator << (std::ostream& os, Matrix<T> matrix) {
 	return os;
 }
 
-template <typename T>
-Matrix<T> operator * (const Matrix<T>& matrix, T multiplier) {
+template <typename T1, typename T2>
+Matrix<T1> operator * (const Matrix<T1>& matrix, T2 multiplier) {
 	Dimention dimention = matrix.getDimention();
-	Matrix<T> resultingMatrix(dimention);
+	Matrix<T1> resultingMatrix(dimention);
 	for (size_t row = 0; row < dimention.rows_number; ++row) {
 		for (size_t column = 0; column < dimention.columns_number; ++column) {
 			resultingMatrix[row][column] = matrix[row][column] * multiplier;
@@ -203,9 +203,26 @@ Matrix<T> operator * (const Matrix<T>& matrix, T multiplier) {
 	return resultingMatrix;
 }
 
-template <typename T>
-Matrix<T> operator * (T multiplier, const Matrix<T>& matrix) {
+template <typename T1, typename T2>
+Matrix<T1> operator * (T2 multiplier, const Matrix<T1>& matrix) {
 	return matrix * multiplier;
+}
+
+template <typename T1, typename T2>
+Matrix<T1> operator / (const Matrix<T1>& matrix, T2 divider) {
+	Dimention dimention = matrix.getDimention();
+	Matrix<T1> resultingMatrix(dimention);
+	for (size_t row = 0; row < dimention.rows_number; ++row) {
+		for (size_t column = 0; column < dimention.columns_number; ++column) {
+			resultingMatrix[row][column] = matrix[row][column] / divider;
+		}
+	}
+	return resultingMatrix;
+}
+
+template <typename T1, typename T2>
+Matrix<T1> operator / (T2 divider, const Matrix<T1>& matrix) {
+	return matrix / divider;
 }
 
 template <typename T>
@@ -225,6 +242,9 @@ Matrix<T> operator + (const Matrix<T>& left, const Matrix<T>& right) {
 
 template <typename T>
 Matrix<T> operator - (const Matrix<T>& left, const Matrix<T>& right) {
+	if (left.getDimention() != right.getDimention()) {
+		throw std::logic_error("can't subtract matrices with different dimentions");
+	}
 	return left + (right * static_cast<T>(-1));
 }
 
