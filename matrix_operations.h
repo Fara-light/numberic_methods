@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <tuple>
+#include <complex>
 #include <iostream>
 #include </home/fara/numeric_methods/matrix.h>
 
@@ -514,7 +515,6 @@ bool qrEndCondition(const Matrix<T> matrix, T EPS) {
 		for (size_t row = column + 1; row < dimention.rows_number; ++row) {
 			currentColumnSquareNorm += matrix[row][column] * matrix[row][column];
 		}
-		std::cout << currentColumnSquareNorm << std::endl;
 		if (sqrt(currentColumnSquareNorm) <= EPS) {
 			return true;
 		}
@@ -523,13 +523,65 @@ bool qrEndCondition(const Matrix<T> matrix, T EPS) {
 }
 
 template <typename T>
-Matrix<T> findMatrixEigenValuesQR(const Matrix<T>& matrix, T EPS) {
+std::vector<std::complex<T>> solveSquareEquation(T a, T b, T c) {
+	T discriminant = b * b - 4 * a * c;
+	std::vector<std::complex<T>> solutions;
+	solutions.push_back((-b + std::sqrt(std::complex<T>(discriminant, 0))) / (2 * a));
+	solutions.push_back((-b - std::sqrt(std::complex<T>(discriminant, 0))) / (2 * a));
+	return solutions;
+}
+
+template <typename T>
+std::vector<std::complex<T>> findEigenValuesOf2x2Matrix(const Matrix<T>& matrix) {
+	Dimention dimention = matrix.getDimention();
+	T b = -(matrix[0][0] + matrix[1][1]);
+	T c = matrix[0][0] * matrix[1][1] - matrix[1][0] * matrix[0][1];
+	return solveSquareEquation(static_cast<T>(1), b, c);
+}
+
+template <typename T>
+Matrix<T> copyBlock2x2(const Matrix<T>& matrix, size_t row, size_t column) {
+	Dimention dimention = matrix.getDimention();
+	if (row + 1 >= dimention.rows_number || column + 1 >= dimention.columns_number) {
+		throw std::out_of_range("Can't copy block, out of bounds");
+	}
+	Matrix<T> block(2, 2);
+	for (size_t block_row = 0; block_row < 2; ++block_row) {
+		for (size_t block_column = 0; block_column < 2; ++block_column) {
+			block[block_row][block_column] = matrix[row + block_row][column + block_column];
+		}
+	}
+	return block;
+}
+
+template <typename T>
+T calculateColumnNormUnderRow(const Matrix<T>& matrix, size_t row, size_t column) {
+	Dimention dimention = matrix.getDimention();
+	T columnSquareNorm = 0;
+	for (size_t m_row = row + 1; m_row < dimention.rows_number; ++m_row) {
+		columnSquareNorm += matrix[m_row][column] * matrix[m_row][column];
+	}
+	return std::sqrt(columnSquareNorm);
+}
+
+template <typename T>
+std::vector<std::complex<T>> findMatrixEigenValuesQR(const Matrix<T>& matrix, T EPS) {
 	Dimention dimention = matrix.getDimention();
 	Matrix<T> A = matrix;
 	while (not qrEndCondition(A, EPS)) {
 		A = executeIterationQR(A);
 	}
-	return A;
+	std::vector<std::complex<T>> eigenValues;
+	for (size_t column = 0; column < dimention.columns_number; ++column) {
+		if (calculateColumnNormUnderRow(A, column, column) > EPS) {
+			auto blockEigenValues = findEigenValuesOf2x2Matrix(copyBlock2x2(A, column, column));
+			eigenValues.insert(eigenValues.end(), blockEigenValues.begin(), blockEigenValues.end());
+			++column;
+			continue;
+		}
+		eigenValues.push_back(std::complex<T>(A[column][column], 0));
+	}
+	return eigenValues;
 }
 
 #endif
