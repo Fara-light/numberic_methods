@@ -7,6 +7,11 @@
 #include </home/fara/numeric_methods/matrix.h>
 
 template <typename T>
+int sign(T val) {
+	return (val > 0) - (val < 0);
+}
+
+template <typename T>
 Matrix<T> getMatrixWithExcludedRowColumn(const Matrix<T>& matrix, size_t rowToRemove, size_t columnToRemove) {
 	// calculates additional minor of matrix, removing row and column with numbers rowToRemove and columnToRemove
 	Dimention dimention = matrix.getDimention();
@@ -250,7 +255,7 @@ T calculateVectorNorm(const Matrix<T>& v) {
 	for (size_t row = 0; row < dimention.rows_number; ++row) {
 		norm += v[row][0] * v[row][0];
 	}
-	return norm;
+	return std::sqrt(norm);
 }
 
 template <typename T>
@@ -455,6 +460,76 @@ std::tuple<size_t, Matrix<T>, std::vector<Matrix<T>>> findEigenValuesVectorsRota
 		eigenVectors.push_back(getMatrixColumn(eigenVectorMatrixU, column));
 	}
 	return std::make_tuple(iterationsCount, eigenValuesVector, eigenVectors);
+}
+
+template <typename T>
+Matrix<T> findHouseholderTransformationVector(Matrix<T> vector, size_t columnNumber) {
+	// auxiliary function, calculates vector to find Householder Transformation
+	// to set all elements below diagonal to zero
+	Dimention vectorDimention = vector.getDimention();
+	for (size_t row = 0; row < columnNumber; ++row) {
+		vector[row][0] = 0;
+	}
+	Matrix<T> resultingVector(vectorDimention);
+	resultingVector[columnNumber][0] = vector[columnNumber][0] + sign(vector[columnNumber][0]) * calculateVectorNorm(vector);
+	for (size_t row = columnNumber + 1; row < vectorDimention.rows_number; ++row) {
+		resultingVector[row][0] = vector[row][0];
+	}
+	return resultingVector;
+}
+
+template <typename T>
+Matrix<T> findHouseholderTransformation(const Matrix<T>& matrix, size_t columnNumber) {
+	// returns matrix H -- Householder transformation, that sets all elements
+	// below diagonal to zero
+	Dimention dimention = matrix.getDimention();
+	if (dimention.columns_number <= columnNumber) {
+		throw std::out_of_range("Can't execute Householder transformation, no such column");
+	}
+	Matrix<T> v = findHouseholderTransformationVector(getMatrixColumn(matrix, columnNumber), columnNumber);
+	Matrix<T> HouseholderMatrix = getIdentityMatrix<T>(dimention) - 2 * (v * transpose(v)) / (transpose(v) * v)[0][0];
+	return HouseholderMatrix;
+}
+
+template <typename T>
+Matrix<T> executeIterationQR(const Matrix<T>& matrix) {
+	// calculates QR-decomposition of matrix and returns R * Q
+	Dimention dimention = matrix.getDimention();
+	Matrix<T> Q = getIdentityMatrix<T>(dimention);
+	Matrix<T> R = matrix;
+	for (size_t column = 0; column + 1 < dimention.columns_number; ++column) {
+		Matrix<T> H = findHouseholderTransformation(R, column);
+		Q = Q * H;
+		R = H * R;
+	}
+	return R * Q;
+}
+
+template <typename T> 
+bool qrEndCondition(const Matrix<T> matrix, T EPS) {
+	// returns true if matrix satisfies end conditions of QR decomposition method
+	Dimention dimention = matrix.getDimention();
+	for (size_t column = 0; column + 1 < dimention.columns_number; ++column) {
+		T currentColumnSquareNorm = 0;
+		for (size_t row = column + 1; row < dimention.rows_number; ++row) {
+			currentColumnSquareNorm += matrix[row][column] * matrix[row][column];
+		}
+		std::cout << currentColumnSquareNorm << std::endl;
+		if (sqrt(currentColumnSquareNorm) <= EPS) {
+			return true;
+		}
+	}
+	return false;
+}
+
+template <typename T>
+Matrix<T> findMatrixEigenValuesQR(const Matrix<T>& matrix, T EPS) {
+	Dimention dimention = matrix.getDimention();
+	Matrix<T> A = matrix;
+	while (not qrEndCondition(A, EPS)) {
+		A = executeIterationQR(A);
+	}
+	return A;
 }
 
 #endif
