@@ -133,6 +133,29 @@ public:
 		checkRowBounds(row_number);
 		return matrix[row_number];
 	}
+	operator T() const {
+		Dimention dimention = getDimention();
+		std::cout << dimention.rows_number << " " << dimention.columns_number << std::endl;
+		if (dimention.rows_number != 1 || dimention.columns_number != 1) {
+			throw std::logic_error("can't cast not 1x1 matrix to T");
+		}
+		return matrix[0][0];
+	}
+	template <typename EL>
+	Matrix<EL> operator () (Matrix<EL> X) const {
+		Dimention xDimention = X.getDimention();
+		Dimention fDimention = getDimention();
+		if (xDimention.rows_number != fDimention.rows_number && xDimention.columns_number != 1) {
+			throw std::logic_error("can't calculate value of matrix with such function argument");
+		}
+		Matrix<EL> resultingMatrix(fDimention);
+		for (size_t row = 0; row < fDimention.rows_number; ++row) {
+			for (size_t column = 0; column < fDimention.columns_number; ++column) {
+				resultingMatrix[row][column] = (*matrix[row][column])(X);
+			}
+		}
+		return resultingMatrix;
+	}
 private:
 	void checkRowBounds(size_t row) const {
 		Dimention dimention = getDimention();
