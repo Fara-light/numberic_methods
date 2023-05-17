@@ -5,7 +5,7 @@
 #include <tuple>
 #include <complex>
 #include <iostream>
-#include </home/fara/numeric_methods/matrix.h>
+#include "matrix.h"
 
 template <typename T>
 int sign(T val) {
@@ -488,7 +488,7 @@ Matrix<T> findHouseholderTransformation(const Matrix<T>& matrix, size_t columnNu
 		throw std::out_of_range("Can't execute Householder transformation, no such column");
 	}
 	Matrix<T> v = findHouseholderTransformationVector(getMatrixColumn(matrix, columnNumber), columnNumber);
-	Matrix<T> HouseholderMatrix = getIdentityMatrix<T>(dimention) - 2 * (v * transpose(v)) / (transpose(v) * v)[0][0];
+	Matrix<T> HouseholderMatrix = getIdentityMatrix<T>(dimention) - 2 * (v * transpose(v)) / static_cast<T>(transpose(v) * v);
 	return HouseholderMatrix;
 }
 
@@ -524,6 +524,8 @@ bool qrEndCondition(const Matrix<T> matrix, T EPS) {
 
 template <typename T>
 std::vector<std::complex<T>> solveSquareEquation(T a, T b, T c) {
+	// returns vector of solutions of square equations if there are two of solutions
+	// TODO: improve function to calculate square equation solution in every case
 	T discriminant = b * b - 4 * a * c;
 	std::vector<std::complex<T>> solutions;
 	solutions.push_back((-b + std::sqrt(std::complex<T>(discriminant, 0))) / (2 * a));
@@ -533,6 +535,7 @@ std::vector<std::complex<T>> solveSquareEquation(T a, T b, T c) {
 
 template <typename T>
 std::vector<std::complex<T>> findEigenValuesOf2x2Matrix(const Matrix<T>& matrix) {
+	// returns vector of eigen values of matrix 2x2
 	Dimention dimention = matrix.getDimention();
 	T b = -(matrix[0][0] + matrix[1][1]);
 	T c = matrix[0][0] * matrix[1][1] - matrix[1][0] * matrix[0][1];
@@ -541,6 +544,7 @@ std::vector<std::complex<T>> findEigenValuesOf2x2Matrix(const Matrix<T>& matrix)
 
 template <typename T>
 Matrix<T> copyBlock2x2(const Matrix<T>& matrix, size_t row, size_t column) {
+	// returns 2x2 matrix copied from row and column to row + 1 and column + 1
 	Dimention dimention = matrix.getDimention();
 	if (row + 1 >= dimention.rows_number || column + 1 >= dimention.columns_number) {
 		throw std::out_of_range("Can't copy block, out of bounds");
@@ -556,6 +560,7 @@ Matrix<T> copyBlock2x2(const Matrix<T>& matrix, size_t row, size_t column) {
 
 template <typename T>
 T calculateColumnNormUnderRow(const Matrix<T>& matrix, size_t row, size_t column) {
+	// calculates norm of column with zeroes above and on row and column values under row
 	Dimention dimention = matrix.getDimention();
 	T columnSquareNorm = 0;
 	for (size_t m_row = row + 1; m_row < dimention.rows_number; ++m_row) {
@@ -566,6 +571,7 @@ T calculateColumnNormUnderRow(const Matrix<T>& matrix, size_t row, size_t column
 
 template <typename T>
 std::vector<std::complex<T>> findMatrixEigenValuesQR(const Matrix<T>& matrix, T EPS) {
+	// returns matrix eigen values using QR-decomposition method
 	Dimention dimention = matrix.getDimention();
 	Matrix<T> A = matrix;
 	while (not qrEndCondition(A, EPS)) {

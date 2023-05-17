@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cmath>
-#include </home/fara/numeric_methods/matrix.h>
-#include </home/fara/numeric_methods/matrix_operations.h>
+#include "../matrix.h"
+#include "../matrix_operations.h"
 
 long double functionFirst(const Matrix<long double>& X) {
 	return X[0][0] - cos(X[1][0]) - 3;

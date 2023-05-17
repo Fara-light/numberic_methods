@@ -1,6 +1,6 @@
 #include <iostream>
-#include </home/fara/numeric_methods/matrix.h>
-#include </home/fara/numeric_methods/matrix_operations.h>
+#include "../matrix.h"
+#include "../matrix_operations.h"
 
 template <typename T>
 std::ostream& operator << (std::ostream& os, const std::complex<T>& val) {
