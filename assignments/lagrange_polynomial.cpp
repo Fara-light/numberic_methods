@@ -67,7 +67,7 @@ void printPolynomial(const std::vector<long double>& coefficients, const std::ve
 		throw std::invalid_argument("printLagrangePolynomial, wrong arguments");
 	}
 	for (size_t pointIndex = 0; pointIndex < abscissaCoordinates.size(); ++pointIndex) {
-		if (pointIndex != 0 && coefficients[pointIndex] < 0) {
+		if (pointIndex != 0 || coefficients[pointIndex] < 0) {
 			printNumberSign(coefficients[pointIndex]);
 		} 
 		std::cout << std::fabs(coefficients[pointIndex]);
