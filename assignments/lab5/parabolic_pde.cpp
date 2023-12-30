@@ -94,9 +94,9 @@ std::vector<std::vector<long double>> getImplicitFiniteDifferenceScheme(const st
       b = -(1 + 2 * sigma);
       c = sigma;
       if (row == 0) {
-        d = -(u[k][1] + sigma * u[k + 1][0]);// leftBoundaryFunction(problemVariables.a, problemVariables.getSpatialStep()) * k);
+        d = -(u[k][1] + sigma * u[k + 1][0]);
       } else if (row == problemVariables.N - 2) {
-        d = -(u[k][problemVariables.N - 1] + sigma * u[k + 1][problemVariables.N]);// rightBoundaryFunction(problemVariables.a, problemVariables.getSpatialStep()) * (k + 1)); // (k + 1)
+        d = -(u[k][problemVariables.N - 1] + sigma * u[k + 1][problemVariables.N]);
       } else {
         d = -u[k][row + 1];
       }
@@ -214,18 +214,15 @@ int main() {
   } else { 
     std::cout << "Explicit finite difference scheme: " << std::endl;
     auto explicitFiniteDifferenceScheme = getExplicitFiniteDifferenceScheme(finiteDifferenceGrid, problemVariables);
-    printScheme(explicitFiniteDifferenceScheme); 
     outputToFileColumn(".explicitDifferenceScheme", problemVariables.N, problemVariables, explicitFiniteDifferenceScheme, solution);
     std::cout << "RMS: " << getRootMeanSquare(explicitFiniteDifferenceScheme, solution) << std::endl;
   } 
   std::cout << "Implicit finite difference scheme: " << std::endl;
   auto implicitFiniteDifferenceScheme = getImplicitFiniteDifferenceScheme(finiteDifferenceGrid, problemVariables);
-  printScheme(implicitFiniteDifferenceScheme); 
   outputToFileColumn(".implicitDifferenceScheme", problemVariables.N, problemVariables, implicitFiniteDifferenceScheme, solution);
   std::cout << "RMS: " << getRootMeanSquare(implicitFiniteDifferenceScheme, solution) << std::endl;
   std::cout << "Crank-Nicolson method: " << std::endl;
   auto crankNicolsonScheme = getCrankNicolsonScheme(finiteDifferenceGrid, problemVariables);
-  printScheme(crankNicolsonScheme); 
   outputToFileColumn(".crankNicolsonDifferenceScheme", problemVariables.N, problemVariables, crankNicolsonScheme, solution);
   std::cout << "RMS: " << getRootMeanSquare(crankNicolsonScheme, solution) << std::endl;
   return 0;
