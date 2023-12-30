@@ -132,7 +132,7 @@ void orthogonolizeMatrixColumns(Matrix<long double>& A) {
 }
 
 int main() {
-  std::cout << "Enter n from matrix n * n: " << std::endl;
+  std::cout << "Enter n for matrix n * n: " << std::endl;
   size_t n;
   std::cin >> n;
   Matrix<long double> A(n, n);
@@ -156,6 +156,6 @@ int main() {
   for (const auto& eigenPair: eigenPairs) {
     std::cout << "Eigen value: " << eigenPair.first << std::endl;
     std::cout << "Eigen vector: " << std::endl;
-    std::cout << V * eigenPair.second << std::endl;
+    std::cout << V * eigenPair.second / getVectorEuclideanNorm(V * eigenPair.second)<< std::endl;
   }
 }

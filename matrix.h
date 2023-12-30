@@ -135,7 +135,6 @@ public:
 	}
 	operator T() const {
 		Dimention dimention = getDimention();
-		std::cout << dimention.rows_number << " " << dimention.columns_number << std::endl;
 		if (dimention.rows_number != 1 || dimention.columns_number != 1) {
 			throw std::logic_error("can't cast not 1x1 matrix to T");
 		}
