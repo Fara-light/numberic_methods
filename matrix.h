@@ -1,6 +1,7 @@
 #ifndef H_MATRIX
 #define H_MATRIX
 
+#include <iostream>
 #include <iomanip>
 #include <algorithm>
 #include <utility>
